@@ -56,7 +56,7 @@ DROP TABLE IF EXISTS `OS_Table`;
 CREATE TABLE `OS_Table` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `OS_ID` int(11) NOT NULL,
-  `OS_Name` varchar(100) NOT NULL,
+  `OS_Name` varchar(500) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
