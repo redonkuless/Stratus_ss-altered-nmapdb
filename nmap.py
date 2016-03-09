@@ -22,11 +22,14 @@ flag = 1
 database_connection = MySQLdb.connect('localhost', 'root', 'test', 'nmap');
 cursor = database_connection.cursor()
 ##########################################################################
+cursor.execute("SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE table_name ='Computer_Info'")
+aicount = cursor.fetchone()
+
 def createNmap():
     
     
     #Run the nmap command with the option to querry the host OS
-    os.system("nmap -O 172.21.3.1/24 > '%s'" % str(nmap_output))    
+    os.system("nmap -O 172.21.3.55/32 > '%s'" % str(nmap_output))    
     nmap_unformatted = open(nmap_output, "r").readlines()
     #Words to exclude
     word1 = "up"
@@ -86,8 +89,9 @@ def parse_dns():
     
     counter = 0
     #Use the length of the ip_address_list to determine the number of loops to run to add to database
+
     while counter < len(ip_address_list):
-        ID = counter + 1
+        ID = aicount[0]
         print "Adding OS ID: ", ID, " IP Address: ", ip_address_list[counter], " and Host Name: ", host_name_list[counter]
         cursor.execute("INSERT INTO Computer_Info(Computer_ID, DNS_Name,Computer_IP_Address,OS_ID) values('%s','%s','%s', '%s')" % (ID, host_name_list[counter], ip_address_list[counter], ID))
         cursor.execute("INSERT INTO Computer_Ports(Computer_ID, Port_ID) values('%s', '%s')" % (ID, ID))
@@ -188,7 +192,9 @@ def parse_ports():
     
     #set the computer_id to 0. The computer_id represents the ID of the computer
     #each port can have the same ID. In this way ports 80, 22, 443 etc all reference computer by ID
-    computer_id = 0
+    cursor.execute("SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE table_name ='Computer_Info'")
+    cmpid = cursor.fetchone()
+    computer_id = cmpid[0] - 1
     existing_ports = []
     for ports_open in port_list:
         starts_with_digit = re.match(r"[0-9]", ports_open) is not None
