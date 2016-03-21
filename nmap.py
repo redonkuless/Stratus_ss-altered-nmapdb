@@ -22,15 +22,15 @@ flag = 1
 database_connection = MySQLdb.connect('localhost', 'root', 'test', 'nmap');
 cursor = database_connection.cursor()
 ##########################################################################
-cursor.execute("SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE table_name ='Computer_Info'")
-aicount = cursor.fetchone()
+
+
 
 def createNmap():
     
     
     #Run the nmap command with the option to querry the host OS
-    os.system("nmap -O 172.21.3.55/32 > '%s'" % str(nmap_output))    
-    nmap_unformatted = open(nmap_output, "r").readlines()
+    os.system("nmap -O 10.81.5.46 10.81.5.47 10.81.5.48 10.81.5.54 10.81.5.76 172.21.4.148 > '%s'" % str(nmap_output))    
+    nmap_unformatted = open(nmap_output, "rw+").readlines()
     #Words to exclude
     word1 = "up"
     word3 = "Starting"
@@ -40,13 +40,14 @@ def createNmap():
     word7 = "Device"
     word8 = "Network"
     word9 = "detection"
+    word0 = "All 1000"
 
 #Here I am redirecting standard out to the scratch file
 #So that the info can be more easily managed
     old_stdout = sys.stdout
-    sys.stdout = open(scratch_file, "w")
+    sys.stdout = open(scratch_file, "w+")
     for line in nmap_unformatted:
-        if word1 not in line and word3 not in line and word5 not in line and word6 not in line and word7 not in line and word8 not in line and word9 not in line:
+        if word1 not in line and word3 not in line and word5 not in line and word6 not in line and word7 not in line and word8 not in line and word9 not in line and word0 not in line:
      #replace the blank lines with dashes so that they are easier to parse
             if line.isspace():
                 print "---"
@@ -56,11 +57,11 @@ def createNmap():
     sys.stdout = old_stdout
 ##########################################################################    
 def parse_dns():
-    text = open(scratch_file, "r").readlines()
+    text = open(scratch_file, "rw+").readlines()
     #filter out the hostname expecting user.company.com
-    hostname = re.compile(r'[\w\-][\w\-\.]+.com')
+    hostname = re.compile(r'[\w\-][\w\-\.]+.corp.dom')
     #filter out the IP, expecting a 192 address
-    ip = re.compile(r'172.\d+.\d+.\d+')
+    ip = re.compile(r'\d+.\d+.\d+.\d+')
     
     computer_id = 1
     #go through the text line by line
@@ -91,9 +92,11 @@ def parse_dns():
     #Use the length of the ip_address_list to determine the number of loops to run to add to database
 
     while counter < len(ip_address_list):
+	cursor.execute("SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE table_name ='Computer_Info'")
+	aicount = cursor.fetchone()
         ID = aicount[0]
         print "Adding OS ID: ", ID, " IP Address: ", ip_address_list[counter], " and Host Name: ", host_name_list[counter]
-        cursor.execute("INSERT INTO Computer_Info(Computer_ID, DNS_Name,Computer_IP_Address,OS_ID) values('%s','%s','%s', '%s')" % (ID, host_name_list[counter], ip_address_list[counter], ID))
+        cursor.execute("INSERT INTO Computer_Info(Computer_ID, DNS_Name, Computer_IP_Address, OS_ID) values('%s','%s','%s', '%s')" % (ID, host_name_list[counter], ip_address_list[counter], ID))
         cursor.execute("INSERT INTO Computer_Ports(Computer_ID, Port_ID) values('%s', '%s')" % (ID, ID))
         counter +=1
         
@@ -102,7 +105,7 @@ def parse_ports():
     
         ###############Parse known ports from the IANA list ####################
     #open the xml file for reading
-    ports_xml = open("port_numbers.xml", "r")
+    ports_xml = open("port_numbers.xml", "w+")
     search_xml = BeautifulSoup(ports_xml) 
 
     #This tells beautiful soup to pull out only the name tag 
@@ -196,8 +199,10 @@ def parse_ports():
     cmpid = cursor.fetchone()
     computer_id = cmpid[0] - 1
     existing_ports = []
+
     for ports_open in port_list:
         starts_with_digit = re.match(r"[0-9]", ports_open) is not None
+        parse_os(computer_id);
         #For the ports section we dont want anything that starts with a letter
         #If the line starts with a digit, parse out only the port number
         if starts_with_digit == True:
@@ -206,6 +211,7 @@ def parse_ports():
             existing_ports.append(ports_open)
             cursor.execute("INSERT INTO Ports_Table(Comp_ID, Port_Number) values('%s','%s')" % ( computer_id, ports_open))
             database_connection.commit()
+
             continue
         #If the line starts with Port, increase the computer_id. Nmap lists the PORT heading only once per computer
         #Therefore it is a reliable way to indicate the ID of a new computer
@@ -225,8 +231,9 @@ def parse_ports():
         else:
             print "This port is not found among the open ports on your network.... OMITTING"
         x +=1
+
 #######################################################################   
-def parse_os():
+def parse_os(computerid):
     OS_list = []
     nmap_file = open(scratch_file)
     for line in nmap_file:
@@ -254,21 +261,21 @@ def parse_os():
             if "No" in host_os or "Too many" in host_os:
                 host_os = "Not available"
                 print "Not available"
-                cursor.execute("INSERT INTO OS_Table(OS_Name) values('%s')" % (host_os))
+                cursor.execute("INSERT INTO OS_Table(OS_Name,Comp_id) values('%s','%s')" % (host_os, computerid))
             else:
                 host_os = host_os.split(",")
                 print "Inserting: ", host_os[0]
-                cursor.execute("INSERT INTO OS_Table(OS_Name) values('%s')" % (host_os[0]))
+                cursor.execute("INSERT INTO OS_Table(OS_Name,Comp_id) values('%s','%s')" % (host_os[0], computerid) )
         elif "Microsoft" in host_os and "OS" not in host_os and "JUST" not in host_os:
             host_os = host_os.split("Running: ") 
             print "Inserting: ", host_os[1]
-            cursor.execute("INSERT INTO OS_Table(OS_Name) values('%s')" % (host_os[1]))
+            cursor.execute("INSERT INTO OS_Table(OS_Name,Comp_id) values('%s', '%s')" % (host_os[1], computerid))
 ##############################################################################
 createNmap()
 
-parse_ports()
+compid = parse_ports()
 parse_dns()
-parse_os()
+#parse_os(compid)
 #close the database connection
 database_connection.commit()
 cursor.close()

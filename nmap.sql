@@ -23,11 +23,12 @@ DROP TABLE IF EXISTS `Computer_Info`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `Computer_Info` (
-  `Computer_ID` int(11) NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `Computer_ID` int(11) NOT NULL,
   `DNS_Name` varchar(50) NOT NULL,
   `Computer_IP_Address` varchar(15) NOT NULL,
   `OS_ID` int(11) NOT NULL,
-  PRIMARY KEY (`Computer_ID`)
+  PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -55,7 +56,7 @@ DROP TABLE IF EXISTS `OS_Table`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `OS_Table` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `OS_ID` int(11) NOT NULL,
+  `Comp_id` int(11) NOT NULL,
   `OS_Name` varchar(500) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
